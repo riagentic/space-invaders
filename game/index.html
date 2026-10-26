@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPACE INVADERS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --neon-green: #39ff14;
+            --neon-pink: #ff2975;
+            --neon-cyan: #00f0ff;
+            --neon-yellow: #ffe600;
+            --neon-purple: #b347ea;
+            --bg-dark: #0a0a12;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: var(--bg-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        /* Starfield background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.8), transparent),
+                radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.6), transparent),
+                radial-gradient(1.5px 1.5px at 50% 10%, rgba(255,255,255,0.9), transparent),
+                radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.5), transparent),
+                radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.7), transparent),
+                radial-gradient(1.5px 1.5px at 15% 85%, rgba(255,255,255,0.6), transparent),
+                radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.8), transparent),
+                radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.5), transparent),
+                radial-gradient(2px 2px at 25% 35%, var(--neon-cyan), transparent),
+                radial-gradient(2px 2px at 75% 65%, var(--neon-pink), transparent);
+            background-size: 200px 200px;
+            animation: starDrift 60s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes starDrift {
+            to { background-position: 0 600px; }
+        }
+
+        /* The wrapper is sized by JS to fill window while keeping 4:3 ratio */
+        #game-wrapper {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HUD — font-size set on wrapper by JS so em units scale */
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 0.6em 0.3em 0.5em;
+            color: var(--neon-green);
+            font-size: 1em;
+            text-shadow: 0 0 8px var(--neon-green);
+        }
+
+        #hud .score-label { color: #888; font-size: 0.7em; margin-bottom: 2px; }
+        #hud .lives { display: flex; gap: 0.45em; align-items: center; }
+        #hud .lives .life {
+            width: 1.4em; height: 1.1em;
+            background: var(--neon-cyan);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            filter: drop-shadow(0 0 4px var(--neon-cyan));
+        }
+        #hud .level-badge {
+            color: var(--neon-yellow);
+            text-shadow: 0 0 8px var(--neon-yellow);
+            font-size: 0.85em;
+        }
+
+        /* Canvas container */
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            flex: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: 1px solid rgba(57, 255, 20, 0.15);
+            border-radius: 4px;
+            box-shadow:
+                0 0 20px rgba(57, 255, 20, 0.08),
+                inset 0 0 60px rgba(0, 0, 0, 0.5);
+            background: transparent;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* Overlay screens */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 5, 15, 0.92);
+            backdrop-filter: blur(6px);
+            z-index: 10;
+            transition: opacity 0.4s;
+        }
+
+        .overlay.hidden { opacity: 0; pointer-events: none; }
+
+        .overlay h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 3.2em;
+            color: var(--neon-green);
+            text-shadow: 0 0 30px var(--neon-green), 0 0 60px rgba(57,255,20,0.3);
+            margin-bottom: 0.2em;
+            letter-spacing: 0.12em;
+        }
+
+        .overlay .subtitle {
+            font-size: 0.8em;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan);
+            margin-bottom: 3em;
+            letter-spacing: 0.3em;
+        }
+
+        .overlay .prompt {
+            font-size: 0.85em;
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink);
+            animation: blink 1.2s ease-in-out infinite;
+        }
+
+        .overlay .final-score {
+            font-size: 1.1em;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+            margin-bottom: 0.5em;
+        }
+
+        .overlay .high-score {
+            font-size: 0.72em;
+            color: #888;
+            margin-bottom: 2.5em;
+        }
+
+        .overlay .controls-info {
+            margin-top: 2em;
+            font-size: 0.6em;
+            color: #555;
+            line-height: 2.2;
+            text-align: center;
+        }
+
+        .overlay .controls-info span {
+            color: var(--neon-purple);
+            text-shadow: 0 0 6px var(--neon-purple);
+        }
+
+        /* Invader art on title screen */
+        .invader-art {
+            display: flex;
+            gap: 1.8em;
+            margin-bottom: 2em;
+        }
+        .invader-art .inv {
+            font-size: 2.5em;
+            animation: invFloat 2s ease-in-out infinite;
+        }
+        .invader-art .inv:nth-child(2) { animation-delay: 0.3s; }
+        .invader-art .inv:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes invFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        /* Scanline effect */
+        #scanlines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0px,
+                transparent 2px,
+                rgba(0,0,0,0.08) 2px,
+                rgba(0,0,0,0.08) 4px
+            );
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-wrapper">
+        <div id="hud">
+            <div>
+                <div class="score-label">SCORE</div>
+                <div id="score">0000</div>
+            </div>
+            <div class="level-badge">WAVE <span id="level">1</span></div>
+            <div>
+                <div class="score-label">HI-SCORE</div>
+                <div id="hi-score">0000</div>
+            </div>
+            <div class="lives" id="lives"></div>
+        </div>
+        <div id="canvas-container">
+            <canvas id="game"></canvas>
+            <div id="scanlines"></div>
+
+            <!-- Title Screen -->
+            <div class="overlay" id="title-screen">
+                <div class="invader-art">
+                    <div class="inv" style="color:var(--neon-pink)">👾</div>
+                    <div class="inv" style="color:var(--neon-cyan)">👾</div>
+                    <div class="inv" style="color:var(--neon-yellow)">👾</div>
+                </div>
+                <h1>SPACE INVADERS</h1>
+                <div class="subtitle">DEFEND EARTH AT ALL COSTS</div>
+                <div class="prompt">PRESS ENTER OR SPACE TO START</div>
+                <div class="controls-info">
+                    <span>← →</span> or <span>A D</span> MOVE &nbsp;&nbsp; <span>SPACE</span> FIRE<br>
+                    <span>P</span> PAUSE
+                </div>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div class="overlay hidden" id="gameover-screen">
+                <h1 style="color:var(--neon-pink);text-shadow:0 0 30px var(--neon-pink),0 0 60px rgba(255,41,117,0.3);">GAME OVER</h1>
+                <div class="subtitle" style="margin-bottom:20px;">THE INVASION SUCCEEDED</div>
+                <div class="final-score">SCORE: <span id="final-score">0</span></div>
+                <div class="high-score">BEST: <span id="final-hi">0</span></div>
+                <div class="prompt">PRESS ENTER TO TRY AGAIN</div>
+            </div>
+
+            <!-- Pause Screen -->
+            <div class="overlay hidden" id="pause-screen">
+                <h1 style="font-size:2.2em;">PAUSED</h1>
+                <div class="prompt" style="margin-top:2em;">PRESS P TO RESUME</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

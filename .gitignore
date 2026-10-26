@@ -1,0 +1,14 @@
+# aio framework link (machine-local) and npm cache
+dep/
+node_modules/
+# build output and binaries
+dist/
+.aio/
+/space-invaders
+*.AppImage
+# runtime and test artifacts
+log/
+.cov/
+.coverage/
+# local agent katas
+.katana/
